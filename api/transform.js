@@ -4,22 +4,18 @@
 //   ACCESS_CODE     建議填，體驗碼；可填多組，用逗號分開，例如 "SPRING26,FRIEND"
 //   GEMINI_MODEL    選填，預設 gemini-3.1-flash-image（Nano Banana 2）
 //   DAILY_LIMIT     選填，同一個網路位址每天最多幾次，預設 5
-//   STYLE_COUNT     選填，每次隨機挑幾張作品當風格參考，預設 4（最多 8）
 //   ALLOWED_ORIGIN  選填，只允許你的網址呼叫，例如 https://bicihui.vercel.app
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-// style-refs 資料夾裡的作品，每次隨機挑幾張當風格參考（張數可用 Vercel 的 STYLE_COUNT 調整，預設 4）
+const STYLE_FILES = ['w4317.webp', 'w4305.webp', 'w4313.webp', 'w4316.webp', 'w4318.webp'];
 
 const PROMPT = `The FIRST image is a drawing made by a visitor. The other images are pastel artworks by the artist of the brand "彼此繪 Draw, U & M" and are STYLE REFERENCES ONLY.
 
-Repaint the visitor's drawing BY HAND with soft pastels, as if the artist re-drew it on textured paper. Stay faithful to the original:
-- Keep exactly the same lines, shapes, composition and where each color sits. Do NOT add any new objects, figures, scenery or details that are not in the visitor's drawing. Simple drawings stay simple.
-- Redraw EVERY line of the visitor's drawing itself as a real pastel stroke: chalky, slightly uneven edges, varying pressure, pigment caught in the paper grain. No smooth digital lines, no dotted or pixel-like strokes may remain.
-- Keep the visitor's own line colors, only softened into pastel tones.
-- Let the lines and the background melt together like one painting: gentle smudging and blending at the edges, soft layered color on the paper taken from the palette of the reference artworks, calm and dreamy mood.
-- The background may be softly colored, but must stay quiet and must not turn into a scene.
-- Use the reference artworks only for the stroke texture, paper grain, blending and palette. Do not copy their subjects.
+Repaint the visitor's drawing as a finished artwork in the artist's style:
+- Keep the visitor's composition, shapes, lines and where each color sits. It must still be clearly recognisable as THEIR drawing.
+- Use the artist's style: soft oil-pastel / soft-pastel strokes with visible texture on paper, gentle blending, dreamy and calm mood, muted night-sky blue, apricot, sage green and warm gold accents.
+- Do not copy the subjects or scenes of the reference artworks.
 - No text, no letters, no signature, no frame. Not a photo, not 3D, not anime.
 Return one square image.`;
 
@@ -34,22 +30,14 @@ function overLimit(ip, limit) {
   return n > limit;
 }
 
-const DIR = path.join(process.cwd(), 'style-refs');
-let fileList = null;
-const fileCache = new Map();
+let styleCache = null;
 async function styleParts() {
-  if (!fileList) fileList = (await readdir(DIR)).filter(f => /\.(webp|jpe?g|png)$/i.test(f));
-  const count = Math.max(1, Math.min(Number(process.env.STYLE_COUNT) || 4, 8, fileList.length));
-  const pool = [...fileList];
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  const picked = pool.slice(0, count);
-  console.log('style refs:', picked.join(', '));
-  return Promise.all(picked.map(async f => {
-    if (!fileCache.has(f)) fileCache.set(f, (await readFile(path.join(DIR, f))).toString('base64'));
-    const ext = f.split('.').pop().toLowerCase();
-    const mimeType = ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : 'image/jpeg';
-    return { inlineData: { mimeType, data: fileCache.get(f) } };
-  }));
+  if (styleCache) return styleCache;
+  const dir = path.join(process.cwd(), 'style-refs');
+  styleCache = await Promise.all(STYLE_FILES.map(async f => ({
+    inlineData: { mimeType: 'image/webp', data: (await readFile(path.join(dir, f))).toString('base64') }
+  })));
+  return styleCache;
 }
 
 export default async function handler(req, res) {
