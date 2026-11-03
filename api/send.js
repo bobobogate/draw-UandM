@@ -24,10 +24,12 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-  const { image, name, email, note, source, letter } = body || {};
+  const { image, aiImage, kind, name, email, note, source, letter } = body || {};
+  const aiOnly = kind === 'ai';
 
-  if (typeof image !== 'string' || image.length < 100) return res.status(400).json({ error: '沒有收到畫，請再試一次。' });
-  if (image.length > 4_000_000) return res.status(413).json({ error: '這張圖太大了，請換一張小一點的。' });
+  if (!aiOnly && (typeof image !== 'string' || image.length < 100)) return res.status(400).json({ error: '沒有收到畫，請再試一次。' });
+  if (aiOnly && (typeof aiImage !== 'string' || aiImage.length < 100)) return res.status(400).json({ error: '沒有收到轉化的畫。' });
+  if ((image || '').length + (aiImage || '').length > 4_000_000) return res.status(413).json({ error: '這張圖太大了，請換一張小一點的。' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ''))) return res.status(400).json({ error: '請填一個可以收信的 Email。' });
 
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
@@ -39,13 +41,18 @@ export default async function handler(req, res) {
     ['Email', email],
     ['想說的話', String(note || '').slice(0, 500) || '（未填）'],
     ['來源', source === 'sketch' ? '網站畫布' : '上傳'],
-    ['想收每月的信', letter ? '是' : '否']
+    ['想收每月的信', letter ? '是' : '否'],
+    ['AI 轉化圖', aiImage ? '有（附件 ai-pastel.jpg）' : '沒有轉化']
   ];
+  const title = aiOnly ? '客人剛剛用 AI 轉化了寄來的畫' : '彼此繪收到一張畫';
+  const attachments = [];
+  if (!aiOnly) attachments.push({ filename: 'drawing.jpg', content: image });
+  if (typeof aiImage === 'string' && aiImage.length > 100) attachments.push({ filename: 'ai-pastel.jpg', content: aiImage });
   const html = `<div style="font-family:sans-serif;line-height:1.7">
-    <h2 style="margin:0 0 12px">彼此繪收到一張畫</h2>
+    <h2 style="margin:0 0 12px">${title}</h2>
     <table cellpadding="6" style="border-collapse:collapse">${rows.map(([k, v]) =>
       `<tr><td style="color:#666;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table>
-    <p style="color:#666">畫在附件裡。直接按「回覆」就會回信給客人。</p></div>`;
+    <p style="color:#666">${aiOnly ? '這封是接續前一封的 AI 轉化圖，在附件裡。' : '畫在附件裡（drawing.jpg 是原畫' + (aiImage ? '，ai-pastel.jpg 是 AI 轉化圖' : '') + '）。'}直接按「回覆」就會回信給客人。</p></div>`;
 
   try {
     const r = await fetch('https://api.resend.com/emails', {
@@ -55,9 +62,9 @@ export default async function handler(req, res) {
         from: process.env.MAIL_FROM || '彼此繪 <onboarding@resend.dev>',
         to: [to],
         reply_to: email,
-        subject: '彼此繪：收到一張畫' + (who ? `（${who}）` : ''),
+        subject: (aiOnly ? '彼此繪：AI 轉化圖' : '彼此繪：收到一張畫') + (who ? `（${who}）` : ''),
         html,
-        attachments: [{ filename: 'drawing.jpg', content: image }]
+        attachments
       })
     });
     const data = await r.json().catch(() => ({}));
