@@ -553,7 +553,7 @@ const CONFIG = {
   brevoFormAction: '',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
   transformAPI: '/api/transform', // AI 轉化：部署到 Vercel 後就會自動接上，留空 '' 代表關閉這個功能
   needCode: true,       // true：客人要輸入你給的「體驗碼」才能轉化（Vercel 裡要設定 ACCESS_CODE）
-  dailyLimit: 3         // 每台裝置每天最多轉化幾次（真正的上限在 Vercel 的 DAILY_LIMIT）
+  dailyLimit: 1         // 每台裝置每天最多轉化幾次（真正的上限在 Vercel 的 DAILY_LIMIT）
 };
 const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
