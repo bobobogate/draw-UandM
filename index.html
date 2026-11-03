@@ -1,13 +1,4 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3E6886">
-<meta property="og:title" content="彼此繪 Draw, U & M">
-<meta property="og:description" content="畫出來，就看得見下一步。">
-<meta property="og:image" content="assets/w4317.webp">
-<link rel="icon" href="assets/logo-mark.webp">
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <title>彼此繪 Draw, U &amp; M</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="彼此繪 Draw, U & M：透過繪畫與引導式提問，陪伴人生轉換期的你看見自己、找到下一步。">
@@ -128,6 +119,14 @@ textarea::placeholder,input::placeholder{color:var(--muted)}
 .check input{margin-top:4px;accent-color:var(--gold);width:16px;height:16px;flex:none}
 .alert{border:1px solid var(--line);border-left:4px solid var(--gold);background:var(--panel-solid);padding:16px 18px;border-radius:var(--r-sm);line-height:1.8;text-align:left;color:var(--ink)}
 .alert b{font-size:22px;letter-spacing:.1em;color:var(--gold)}
+/* AI 轉化：用彼此繪的風格重畫 */
+.tf{display:grid;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.tf .row{align-items:center}
+.tf input[type=text]{flex:1 1 160px;padding:9px 12px;font-size:15px}
+.tf-out{display:grid;gap:10px;margin-top:6px}
+.tf-out .pic{aspect-ratio:auto}
+.tf-out .pic img{height:auto;max-height:600px;object-fit:contain;background:#FDFBF6}
+.tf-wait{display:grid;justify-items:center;gap:4px;padding:18px 0;color:var(--ink-2);font-size:15px;text-align:center}
 .spin{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--gold);animation:spin 1s linear infinite;margin:0 auto 10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .scroll-on{display:grid;justify-items:center;gap:6px;margin-top:clamp(40px,6vw,64px);color:var(--muted);font-size:14px;letter-spacing:.14em;text-decoration:none}
@@ -170,7 +169,7 @@ textarea::placeholder,input::placeholder{color:var(--muted)}
 .story:not(.anim) .whale{transform:translate(-50%,-62%) scale(.85)}
 
 /* whale that follows the pointer */
-.follower{position:fixed;left:0;top:0;width:clamp(140px,15vw,196px);aspect-ratio:666/619;z-index:3;pointer-events:none;opacity:0;transition:opacity .5s;will-change:transform}
+.follower{position:fixed;left:0;top:0;width:clamp(70px,7.5vw,98px);aspect-ratio:666/619;z-index:3;pointer-events:none;opacity:0;transition:opacity .5s;will-change:transform}
 .follower.show{opacity:1}
 .follower .flip{position:absolute;inset:0;transition:transform .35s}
 .follower.left .flip{transform:scaleX(-1)}
@@ -284,7 +283,6 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
 </head>
 <body>
 
-
 <canvas id="sky" aria-hidden="true"></canvas>
 
 <nav class="nav" aria-label="主要導覽">
@@ -337,7 +335,6 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
       </form>
       <div class="result" id="result" aria-live="polite"><div>你的畫會出現在這裡</div></div>
     </div>
-    <iframe name="sendSink" id="sendSink" title="寄送" hidden></iframe>
     <a class="scroll-on" href="#story">往下滑，跟著鯨魚走<i></i></a>
   </div>
 </section>
@@ -551,8 +548,11 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
 <script>
 /* ============ 設定：接上服務後填這裡 ============ */
 const CONFIG = {
-  drawMailTo: 'bobobogate2@gmail.com',     // 收畫的信箱，例如 'you@gmail.com'（啟用後可換成 FormSubmit 給的隨機代碼，藏起信箱）
-  brevoFormAction: ''   // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
+  sendAPI: '/api/send', // 寄畫：由網站後端用 Resend 寄出，收件信箱在 Vercel 的 MAIL_TO 設定
+  brevoFormAction: '',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
+  transformAPI: '/api/transform', // AI 轉化：部署到 Vercel 後就會自動接上，留空 '' 代表關閉這個功能
+  needCode: true,       // true：客人要輸入你給的「體驗碼」才能轉化（Vercel 裡要設定 ACCESS_CODE）
+  dailyLimit: 1         // 每台裝置每天最多轉化幾次（真正的上限在 Vercel 的 DAILY_LIMIT）
 };
 const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -700,6 +700,72 @@ const storyState={p:REDUCE?1:0};
   function setPreview(url,alt){
     result.className='result has';
     result.innerHTML=`<div class="pic" style="aspect-ratio:auto"><img src="${url}" alt="${alt}" style="height:auto;max-height:560px;object-fit:contain;background:#FDFBF6"></div>`;
+    addTransform();
+  }
+
+  /* ---------- AI 轉化：把客人的畫，用彼此繪的粉彩風格重畫一次 ---------- */
+  const today=()=>new Date().toISOString().slice(0,10);
+  function usedToday(){try{const v=JSON.parse(localStorage.getItem('bch-tf')||'{}');return v.d===today()?v.n:0}catch(e){return 0}}
+  function markUsed(){try{localStorage.setItem('bch-tf',JSON.stringify({d:today(),n:usedToday()+1}))}catch(e){}}
+  function savedCode(){try{return localStorage.getItem('bch-code')||''}catch(e){return ''}}
+  function keepCode(v){try{localStorage.setItem('bch-code',v)}catch(e){}}
+  const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+  function addTransform(){
+    if(!CONFIG.transformAPI||result.querySelector('.tf'))return;
+    const box=document.createElement('div');box.className='tf';
+    box.innerHTML=`<p class="small">想看看這張畫，用彼此繪的粉彩風格重畫會是什麼樣子嗎？</p>
+      <div class="row">${CONFIG.needCode?`<input type="text" id="tfCode" placeholder="體驗碼" maxlength="40" autocomplete="off" value="${esc(savedCode())}" aria-label="體驗碼">`:''}
+      <button type="button" class="btn" id="tfBtn">用彼此繪的風格畫一次 <span class="arr" aria-hidden="true">✦</span></button></div>
+      <p class="note">按下後，你的畫會送到 Google Gemini，以彼此繪的作品為風格參考重新畫一次。轉化的圖只給你看，不會公開。${CONFIG.needCode?'體驗碼請向彼此繪索取。':''}</p>
+      <p class="note" id="tfErr" role="alert" hidden></p>
+      <div class="tf-out" id="tfOut" aria-live="polite"></div>`;
+    result.appendChild(box);
+    box.querySelector('#tfBtn').onclick=runTransform;
+  }
+
+  // 送去轉化前縮到長邊 1024px
+  function toSmallJPEG(max=1024){
+    return new Promise(async res=>{
+      let src;
+      if(mode==='sketch'){ if(!inked)return res(null); src=c.toDataURL('image/jpeg',.9) }
+      else { if(!upBlob)return res(null); src=URL.createObjectURL(upBlob) }
+      const img=new Image();
+      img.onload=()=>{const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+        const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);
+        const g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
+        if(src.startsWith('blob:'))URL.revokeObjectURL(src);
+        res(cv.toDataURL('image/jpeg',.88).split(',')[1])};
+      img.onerror=()=>res(null);
+      img.src=src;
+    });
+  }
+
+  async function runTransform(){
+    const btn=document.getElementById('tfBtn'),out=document.getElementById('tfOut'),er=document.getElementById('tfErr');
+    const codeIn=document.getElementById('tfCode');
+    const oops=m=>{er.hidden=false;er.textContent=m};
+    er.hidden=true;
+    if(usedToday()>=CONFIG.dailyLimit)return oops(`今天已經轉化 ${CONFIG.dailyLimit} 次了，明天再來畫吧。`);
+    const code=codeIn?codeIn.value.trim():'';
+    if(CONFIG.needCode&&!code){codeIn.focus();return oops('請先填入體驗碼。')}
+    const image=await toSmallJPEG();
+    if(!image)return oops(mode==='sketch'?'先在畫布上畫幾筆吧。':'請先選一張你的畫。');
+    btn.disabled=true;btn.textContent='畫畫中…';
+    out.innerHTML='<div class="tf-wait"><div class="spin"></div>彼此繪正在用粉彩重畫你的畫，大約需要 10～30 秒</div>';
+    try{
+      const r=await fetch(CONFIG.transformAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image,code})});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok||!data.image)throw new Error(data.error||'這次沒有畫成功，請稍後再試一次。');
+      if(codeIn)keepCode(code);
+      markUsed();
+      const url=`data:${data.mime||'image/png'};base64,${data.image}`;
+      out.innerHTML=`<div class="pic"><img src="${url}" alt="用彼此繪粉彩風格重畫的你的畫"><span class="badge">AI 輔助・彼此繪風格</span></div>
+        <a class="btn" href="${url}" download="彼此繪-轉化.png" style="justify-self:start">存下這張畫 <span class="arr" aria-hidden="true">↓</span></a>`;
+    }catch(e){
+      out.innerHTML='';oops(e.message);
+    }
+    btn.disabled=false;btn.innerHTML='再畫一次 <span class="arr" aria-hidden="true">✦</span>';
   }
   function showPreview(){
     if(mode==='sketch'){ if(inked) setPreview(c.toDataURL('image/jpeg',.85),'你在畫布上畫的畫'); else {result.className='result';result.innerHTML='<div>你的畫會出現在這裡</div>'} return }
@@ -735,33 +801,30 @@ const storyState={p:REDUCE?1:0};
   document.getElementById('sendForm').onsubmit=async ev=>{
     ev.preventDefault(); err.hidden=true;
     const em=document.getElementById('artEmail'),nm=document.getElementById('artName'),nt=document.getElementById('artNote');
-    let blob,fname;
-    if(mode==='sketch'){ if(!inked)return fail('先在畫布上畫幾筆吧。'); blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.9)); fname='canvas.jpg' }
-    else { if(!upBlob)return fail('請先選一張你的畫。',fileIn); blob=upBlob; fname=upName||'drawing.jpg' }
-    if(blob.size>9.5e6)return fail('這張圖太大了，請換一張小一點的（10MB 以內）。');
+    if(mode==='sketch'){ if(!inked)return fail('先在畫布上畫幾筆吧。') }
+    else { if(!upBlob)return fail('請先選一張你的畫。',fileIn) }
     if(!em.value||!em.checkValidity())return fail('請填一個可以收信的 Email，我們才能回信給你。',em);
     if(!document.getElementById('artAgree').checked)return fail('請勾選同意，我們才能收下這張畫。');
     const btn=document.getElementById('sendBtn');btn.disabled=true;btn.textContent='寄送中…';
-    if(CONFIG.drawMailTo){
-      // 用一般表單送出（FormSubmit 的附件需要 multipart 表單），結果導到隱藏的 iframe，畫面不跳走
-      const f=document.createElement('form');
-      f.method='POST';f.enctype='multipart/form-data';f.target='sendSink';f.hidden=true;
-      f.action='https://formsubmit.co/'+encodeURIComponent(CONFIG.drawMailTo);
-      const add=(n,v)=>{const i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;f.appendChild(i)};
-      add('_subject','彼此繪：收到一張畫'+(nm.value?'（'+nm.value+'）':''));
-      add('_captcha','false'); add('_template','table'); add('_replyto',em.value); add('_honey','');
-      add('稱呼',nm.value||'（未填）'); add('email',em.value); add('想說的話',nt.value||'（未填）');
-      add('來源',mode==='sketch'?'網站畫布':'上傳'); add('想收每月的信',document.getElementById('artLetter').checked?'是':'否');
-      const fi=document.createElement('input');fi.type='file';fi.name='attachment';
-      const dt=new DataTransfer();dt.items.add(new File([blob],fname,{type:blob.type||'image/jpeg'}));fi.files=dt.files;f.appendChild(fi);
-      document.body.appendChild(f);f.submit();setTimeout(()=>f.remove(),5000);
-    }else{ await new Promise(r=>setTimeout(r,900)); }
+    const done=()=>{btn.disabled=false;btn.innerHTML=(sent?'再寄一張':'寄給彼此繪')+' <span class="arr" aria-hidden="true">→</span>'};
+    let sent=false;
+    try{
+      const image=await toSmallJPEG(1600);
+      if(!image)throw new Error('這張畫讀不到，請換一張再試。');
+      const r=await fetch(CONFIG.sendAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image,name:nm.value,email:em.value,note:nt.value,source:mode,letter:document.getElementById('artLetter').checked})});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok||!data.ok)throw new Error(data.error||'這次沒有寄出去，請稍後再試一次。');
+      sent=true;
+    }catch(e){ fail(e.message); done(); return; }
     if(document.getElementById('artLetter').checked) await sendBrevo({EMAIL:em.value,FIRSTNAME:nm.value,SOURCE:'寄一張畫'});
     const pic=result.querySelector('.pic')?result.querySelector('.pic').outerHTML:'';
+    const tfBox=result.querySelector('.tf');
+    setTimeout(()=>{ if(tfBox) result.appendChild(tfBox); else addTransform(); },0);
     result.className='result has';
     result.innerHTML=`<div style="display:grid;gap:6px">${pic}<p class="ask">畫收到了，謝謝你願意分享。我們會看過你的畫，回一封信給你。</p>
-      ${CONFIG.drawMailTo?'':'<p class="note">試做版：還沒設定收畫的信箱，這張畫不會真的寄出。</p>'}${crisis.test(nt.value)?crisisHTML:''}</div>`;
-    btn.disabled=false;btn.innerHTML='再寄一張 <span class="arr" aria-hidden="true">→</span>';
+      ${crisis.test(nt.value)?crisisHTML:''}</div>`;
+    done();
     nt.value='';
   };
 })();
@@ -784,5 +847,4 @@ document.getElementById('letterForm').addEventListener('submit',async e=>{
 });
 </script>
 
-</body>
-</html>
+</body></html>
