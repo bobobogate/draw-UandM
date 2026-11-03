@@ -169,7 +169,7 @@ textarea::placeholder,input::placeholder{color:var(--muted)}
 .story:not(.anim) .whale{transform:translate(-50%,-62%) scale(.85)}
 
 /* whale that follows the pointer */
-.follower{position:fixed;left:0;top:0;width:clamp(70px,7.5vw,98px);aspect-ratio:666/619;z-index:3;pointer-events:none;opacity:0;transition:opacity .5s;will-change:transform}
+.follower{position:fixed;left:0;top:0;width:clamp(140px,15vw,196px);aspect-ratio:666/619;z-index:3;pointer-events:none;opacity:0;transition:opacity .5s;will-change:transform}
 .follower.show{opacity:1}
 .follower .flip{position:absolute;inset:0;transition:transform .35s}
 .follower.left .flip{transform:scaleX(-1)}
@@ -697,7 +697,9 @@ const storyState={p:REDUCE?1:0};
     document.querySelectorAll('#swatches button[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b));});
 
   let previewURL=null;
+  let lastAI=null,lastSent=null;
   function setPreview(url,alt){
+    lastAI=null;lastSent=null; // 換了畫，就不再沿用舊的轉化圖
     result.className='result has';
     result.innerHTML=`<div class="pic" style="aspect-ratio:auto"><img src="${url}" alt="${alt}" style="height:auto;max-height:560px;object-fit:contain;background:#FDFBF6"></div>`;
     addTransform();
@@ -741,6 +743,12 @@ const storyState={p:REDUCE?1:0};
     });
   }
 
+  // 記住最新的 AI 轉化圖（轉成 JPEG，寄信時一起附上）與已寄出的資料
+  function toJPEGBase64(url){
+    return new Promise(res=>{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+      const g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0);res(cv.toDataURL('image/jpeg',.9).split(',')[1])};
+      img.onerror=()=>res(null);img.src=url;});
+  }
   async function runTransform(){
     const btn=document.getElementById('tfBtn'),out=document.getElementById('tfOut'),er=document.getElementById('tfErr');
     const codeIn=document.getElementById('tfCode');
@@ -760,6 +768,10 @@ const storyState={p:REDUCE?1:0};
       if(codeIn)keepCode(code);
       markUsed();
       const url=`data:${data.mime||'image/png'};base64,${data.image}`;
+      lastAI=await toJPEGBase64(url);
+      if(lastSent&&lastAI){ // 畫已經寄出後才轉化：把轉化圖補寄一封
+        fetch(CONFIG.sendAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...lastSent,kind:'ai',aiImage:lastAI})}).catch(()=>{});
+      }
       out.innerHTML=`<div class="pic"><img src="${url}" alt="用彼此繪粉彩風格重畫的你的畫"><span class="badge">AI 輔助・彼此繪風格</span></div>
         <a class="btn" href="${url}" download="彼此繪-轉化.png" style="justify-self:start">存下這張畫 <span class="arr" aria-hidden="true">↓</span></a>`;
     }catch(e){
@@ -812,10 +824,11 @@ const storyState={p:REDUCE?1:0};
       const image=await toSmallJPEG(1600);
       if(!image)throw new Error('這張畫讀不到，請換一張再試。');
       const r=await fetch(CONFIG.sendAPI,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({image,name:nm.value,email:em.value,note:nt.value,source:mode,letter:document.getElementById('artLetter').checked})});
+        body:JSON.stringify({image,aiImage:lastAI||undefined,name:nm.value,email:em.value,note:nt.value,source:mode,letter:document.getElementById('artLetter').checked})});
       const data=await r.json().catch(()=>({}));
       if(!r.ok||!data.ok)throw new Error(data.error||'這次沒有寄出去，請稍後再試一次。');
       sent=true;
+      lastSent={name:nm.value,email:em.value,note:nt.value,source:mode,letter:document.getElementById('artLetter').checked};
     }catch(e){ fail(e.message); done(); return; }
     if(document.getElementById('artLetter').checked) await sendBrevo({EMAIL:em.value,FIRSTNAME:nm.value,SOURCE:'寄一張畫'});
     const pic=result.querySelector('.pic')?result.querySelector('.pic').outerHTML:'';
