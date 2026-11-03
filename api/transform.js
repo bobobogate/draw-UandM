@@ -12,10 +12,13 @@ const STYLE_FILES = ['w4317.webp', 'w4305.webp', 'w4313.webp', 'w4316.webp', 'w4
 
 const PROMPT = `The FIRST image is a drawing made by a visitor. The other images are pastel artworks by the artist of the brand "彼此繪 Draw, U & M" and are STYLE REFERENCES ONLY.
 
-Repaint the visitor's drawing as a finished artwork in the artist's style:
-- Keep the visitor's composition, shapes, lines and where each color sits. It must still be clearly recognisable as THEIR drawing.
-- Use the artist's style: soft oil-pastel / soft-pastel strokes with visible texture on paper, gentle blending, dreamy and calm mood, muted night-sky blue, apricot, sage green and warm gold accents.
-- Do not copy the subjects or scenes of the reference artworks.
+Repaint the visitor's drawing BY HAND with soft pastels, as if the artist re-drew it on textured paper. Stay faithful to the original:
+- Keep exactly the same lines, shapes, composition and where each color sits. Do NOT add any new objects, figures, scenery or details that are not in the visitor's drawing. Simple drawings stay simple.
+- Redraw EVERY line of the visitor's drawing itself as a real pastel stroke: chalky, slightly uneven edges, varying pressure, pigment caught in the paper grain. No smooth digital lines, no dotted or pixel-like strokes may remain.
+- Keep the visitor's own line colors, only softened into pastel tones.
+- Let the lines and the background melt together like one painting: gentle smudging and blending at the edges, soft layered color on the paper in the artist's palette (muted night-sky blue, apricot, sage green, small warm gold specks), calm and dreamy mood.
+- The background may be softly colored, but must stay quiet and must not turn into a scene.
+- Use the reference artworks only for the stroke texture, paper grain, blending and palette. Do not copy their subjects.
 - No text, no letters, no signature, no frame. Not a photo, not 3D, not anime.
 Return one square image.`;
 
