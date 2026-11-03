@@ -47,7 +47,8 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const key = process.env.GEMINI_API_KEY;
+  // 去掉貼上時不小心多出的空白、換行或引號
+  const key = String(process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '').trim();
   if (!key) return res.status(503).json({ error: '轉化功能還沒設定好，請稍後再試。' });
 
   let body = req.body;
@@ -72,10 +73,8 @@ export default async function handler(req, res) {
 
   const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-image';
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    const payload = JSON.stringify({
         contents: [{
           role: 'user',
           parts: [
@@ -85,11 +84,24 @@ export default async function handler(req, res) {
           ]
         }],
         generationConfig: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '1:1' } }
-      })
     });
+    // 先用標頭傳金鑰；如果被拒（401），改用網址參數再試一次
+    let r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: payload
+    });
+    if (r.status === 401) {
+      r = await fetch(`${endpoint}?key=${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+    }
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      console.error('Gemini error', r.status, JSON.stringify(data).slice(0, 800));
+      // 只記錄金鑰開頭與長度，方便檢查有沒有貼錯，不會記下整把金鑰
+      console.error('Gemini error', r.status, `key=${key.slice(0, 3)}… len=${key.length}`, `model=${model}`, JSON.stringify(data).slice(0, 800));
       return res.status(502).json({ error: '這次沒有畫成功，請稍後再試一次。' });
     }
     const parts = data?.candidates?.[0]?.content?.parts || [];
