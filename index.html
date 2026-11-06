@@ -549,7 +549,7 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
 /* ============ 設定：接上服務後填這裡 ============ */
 const CONFIG = {
   sendAPI: '/api/send', // 寄畫：由網站後端用 Resend 寄出，收件信箱在 Vercel 的 MAIL_TO 設定
-  brevoFormAction: '',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
+  brevoFormAction: 'https://fecb8b10.sibforms.com/serve/MUIFAP7z-uwggLPAx3937P2Ix5kiPYNyJQShIbTk2L9bHhdwW_C15zU3tsGpDUsGOm4_8Xj5HlFho8oNdYuq49ewSsKByd-A7mhZkltr1h1VlaPWbd4urSqKB0kdLwed8uJXE9n9GjL_4ZOwpIBeVEYpH5bE_InVA8mN971DPRGHSGyzxKvITLKceHYOcC-VWVjaQCrRaFRTaVdAIw==',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
   transformAPI: '/api/transform', // AI 轉化：部署到 Vercel 後就會自動接上，留空 '' 代表關閉這個功能
   needCode: true,       // true：客人要輸入你給的「體驗碼」才能轉化（Vercel 裡要設定 ACCESS_CODE）
   dailyLimit: 1         // 每台裝置每天最多轉化幾次（真正的上限在 Vercel 的 DAILY_LIMIT）
