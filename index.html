@@ -448,10 +448,10 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
       <h2>從最輕鬆的開始</h2>
     </div>
     <div class="ways">
-      <div class="way"><p class="where">線上</p><h3>讀書會</h3><p>一起讀一本書，聊聊自己。</p></div>
+      <div class="way"><p class="where">免費・與好友合辦</p><h3>畫聚</h3><p>用薩提爾桌遊交流，用畫畫記錄。</p></div>
+      <div class="way"><p class="where">與好友合辦</p><h3>芳療粉彩</h3><p>聞一點香氣，讓顏色說話。</p></div>
       <div class="way"><p class="where">咖啡館</p><h3>Cafe Chat</h3><p>在咖啡館裡，畫下此刻。</p></div>
-      <div class="way"><p class="where">小團體</p><h3>團體體驗</h3><p>聽見彼此，看見不同。</p></div>
-      <div class="way"><p class="where">一對一</p><h3>一對一體驗</h3><p>專屬的時間，慢慢說清楚。</p></div>
+      <div class="way"><p class="where">一對一・小團體</p><h3>深度體驗</h3><p>多一點時間，慢慢說清楚。</p></div>
     </div>
     <div class="join-cta"><p class="lead">時間和地點，會寫在信裡告訴你。</p><a class="btn" href="#letters">收一封信 <span class="arr" aria-hidden="true">→</span></a></div>
   </div>
@@ -505,10 +505,10 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
         <fieldset>
           <legend>你對哪些體驗有興趣（可複選）</legend>
           <div class="chips">
-            <label><input type="checkbox" name="INTERESTS" value="讀書會" id="i1">讀書會</label>
-            <label><input type="checkbox" name="INTERESTS" value="Cafe Chat" id="i2">Cafe Chat</label>
-            <label><input type="checkbox" name="INTERESTS" value="團體體驗" id="i3">團體體驗</label>
-            <label><input type="checkbox" name="INTERESTS" value="一對一體驗" id="i4">一對一體驗</label>
+            <label><input type="checkbox" name="INTERESTS" value="畫聚" id="i1">畫聚</label>
+            <label><input type="checkbox" name="INTERESTS" value="芳療粉彩" id="i2">芳療粉彩</label>
+            <label><input type="checkbox" name="INTERESTS" value="Cafe Chat" id="i3">Cafe Chat</label>
+            <label><input type="checkbox" name="INTERESTS" value="深度體驗" id="i4">深度體驗</label>
             <label><input type="checkbox" name="INTERESTS" value="先看看信就好" id="i5">先看看信就好</label>
           </div>
         </fieldset>
@@ -549,7 +549,7 @@ footer{padding-block:clamp(64px,9vw,104px) 40px}
 /* ============ 設定：接上服務後填這裡 ============ */
 const CONFIG = {
   sendAPI: '/api/send', // 寄畫：由網站後端用 Resend 寄出，收件信箱在 Vercel 的 MAIL_TO 設定
-  brevoFormAction: 'https://fecb8b10.sibforms.com/serve/MUIFAP7z-uwggLPAx3937P2Ix5kiPYNyJQShIbTk2L9bHhdwW_C15zU3tsGpDUsGOm4_8Xj5HlFho8oNdYuq49ewSsKByd-A7mhZkltr1h1VlaPWbd4urSqKB0kdLwed8uJXE9n9GjL_4ZOwpIBeVEYpH5bE_InVA8mN971DPRGHSGyzxKvITLKceHYOcC-VWVjaQCrRaFRTaVdAIw==',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
+  brevoFormAction: '',  // Brevo 表單的送出網址（Brevo 表單 → 分享 → HTML 程式碼裡 form 的 action）
   transformAPI: '/api/transform', // AI 轉化：部署到 Vercel 後就會自動接上，留空 '' 代表關閉這個功能
   needCode: true,       // true：客人要輸入你給的「體驗碼」才能轉化（Vercel 裡要設定 ACCESS_CODE）
   dailyLimit: 1         // 每台裝置每天最多轉化幾次（真正的上限在 Vercel 的 DAILY_LIMIT）
